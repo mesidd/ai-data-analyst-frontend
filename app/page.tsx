@@ -9,6 +9,8 @@ import {
   Loader2,
 } from "lucide-react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
 type QueryRow = Record<string, any>;
 
 export default function Dashboard() {
@@ -32,7 +34,7 @@ export default function Dashboard() {
 
     try {
       const response = await fetch(
-        "http://localhost:8000/query",
+        `${API_URL}/query`,
         {
           method: "POST",
           headers: {
