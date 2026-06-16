@@ -1,65 +1,209 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState } from "react";
+import {
+  Search,
+  Database,
+  Code2,
+  ShieldAlert,
+  Loader2,
+} from "lucide-react";
+
+type QueryRow = Record<string, any>;
+
+export default function Dashboard() {
+  const [prompt, setPrompt] = useState("");
+  const [sql, setSql] = useState("");
+  const [data, setData] = useState<QueryRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleQuery = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
+    e.preventDefault();
+
+    if (!prompt.trim()) return;
+
+    setLoading(true);
+    setError("");
+    setSql("");
+    setData([]);
+
+    try {
+      const response = await fetch(
+        "http://localhost:8000/query",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt: prompt.trim(),
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.detail || "Failed to execute query"
+        );
+      }
+
+      setSql(result.executed_sql);
+      setData(result.data || []);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unexpected error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <main className="min-h-screen bg-slate-950 text-white">
+      <div className="mx-auto max-w-6xl p-8">
+        {/* Header */}
+        <div className="mb-10">
+          <div className="flex items-center gap-3">
+            <Database className="h-8 w-8 text-blue-400" />
+            <h1 className="text-3xl font-bold">
+              Air-Gapped AI Data Analyst
+            </h1>
+          </div>
+
+          <p className="mt-2 text-slate-400">
+            Enterprise deterministic SQL generation layer
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+        {/* Query Form */}
+        <form
+          onSubmit={handleQuery}
+          className="mb-8"
+        >
+          <div className="relative">
+            <Search className="absolute left-4 top-4 h-5 w-5 text-slate-500" />
+
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) =>
+                setPrompt(e.target.value)
+              }
+              placeholder="Ask a question about the clients database..."
+              disabled={loading}
+              className="w-full rounded-xl border border-slate-700 bg-slate-900 py-4 pl-12 pr-36 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="absolute right-2 top-2 rounded-lg bg-blue-600 px-5 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                "Run Query"
+              )}
+            </button>
+          </div>
+        </form>
+
+        {/* Error */}
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-700 bg-red-950 p-4">
+            <div className="flex items-center gap-2 text-red-400">
+              <ShieldAlert className="h-5 w-5" />
+              <span className="font-semibold">
+                Guardrail Triggered
+              </span>
+            </div>
+
+            <p className="mt-2 text-red-200">
+              {error}
+            </p>
+          </div>
+        )}
+
+        {/* Results */}
+        {!loading && sql && (
+          <div className="space-y-6">
+            {/* SQL */}
+            <div className="rounded-xl border border-slate-700 bg-slate-900 p-5">
+              <div className="mb-3 flex items-center gap-2">
+                <Code2 className="h-5 w-5 text-green-400" />
+                <h2 className="font-semibold">
+                  Generated SQL
+                </h2>
+              </div>
+
+              <pre className="overflow-x-auto rounded bg-slate-950 p-4 text-green-400">
+                {sql}
+              </pre>
+            </div>
+
+            {/* Data */}
+            <div className="rounded-xl border border-slate-700 bg-slate-900 p-5">
+              <h2 className="mb-4 font-semibold">
+                Query Results
+              </h2>
+
+              {data.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border-collapse">
+                    <thead>
+                      <tr>
+                        {Object.keys(data[0]).map(
+                          (key) => (
+                            <th
+                              key={key}
+                              className="border-b border-slate-700 p-3 text-left"
+                            >
+                              {key.replace(
+                                /_/g,
+                                " "
+                              )}
+                            </th>
+                          )
+                        )}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {data.map((row, i) => (
+                        <tr key={i}>
+                          {Object.values(row).map(
+                            (value, j) => (
+                              <td
+                                key={j}
+                                className="border-b border-slate-800 p-3"
+                              >
+                                {value !== null
+                                  ? String(value)
+                                  : "N/A"}
+                              </td>
+                            )
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-slate-400">
+                  No records found.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }
